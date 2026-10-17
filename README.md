@@ -1,6 +1,6 @@
-# Autonomous Logistics Agent Pipeline (Google ADK + FastMCP + FastAPI)
+# Autonomous Logistics Agent Pipeline=
+An end-to-end autonomous logistics orchestration system.
 
-An end-to-end autonomous logistics orchestration system built with the **Google Agent Development Kit (ADK)**, **FastMCP (Model Context Protocol)**, **FastAPI**, and **SQLite**.
 
 ---
 
