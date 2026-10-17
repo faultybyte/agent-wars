@@ -1,6 +1,6 @@
-# Autonomous Logistics Agent Pipeline=
-An end-to-end autonomous logistics orchestration system.
+# Autonomous Logistics Agent Pipeline
 
+An end-to-end autonomous logistics orchestration system.
 
 ---
 
@@ -34,13 +34,13 @@ An end-to-end autonomous logistics orchestration system.
 
 ### Components
 
-1. **Autonomous ADK Agent (`agent_handler.py`)**:
-   - `LogisticsOrchestrator`: Main root agent coordinating the logistics workflow.
+1. **Autonomous ADK Agent (`src/agent_wars/agent_handler.py`)**:
+   - `LogisticsOrchestrator`: Master agent managing the order lifecycle.
    - `InventoryAgent`: Sub-agent verifying catalog stock and warehouse quantities.
    - `DispatchAgent`: Sub-agent planning route feasibility, transit weather checks, and carrier booking.
    - `ExceptionAgent`: Sub-agent handling stock shortages, alternative SKU discovery, and route blockage rerouting.
 
-2. **FastMCP Server (`mcp_server.py`)**:
+2. **FastMCP Server (`src/agent_wars/mcp_server.py`)**:
    - Exposes tools via Model Context Protocol:
      - `check_inventory(sku)`
      - `check_route_weather(destination)`
@@ -51,14 +51,14 @@ An end-to-end autonomous logistics orchestration system.
      - `list_inventory()`
      - `get_shipment_status(order_id)`
 
-3. **FastAPI Web Backend & Dashboard (`api.py`)**:
+3. **FastAPI Web Backend & Dashboard (`src/agent_wars/api.py`)**:
    - REST API endpoints (`/api/orders/process`, `/api/orders`, `/api/inventory`, `/api/products`, `/api/shipments`, `/api/health`).
    - FastMCP server mounted at `/mcp`.
    - Healthcheck & probe endpoints: `/api/health`, `/healthz`, `/livez`.
    - Swagger OpenAPI interactive documentation at `/docs`.
    - Rich real-time Single Page Application dashboard served at `/`.
 
-4. **Relational Database (`database.py` / `inventory.db`)**:
+4. **Relational Database (`src/agent_wars/database.py` / `inventory.db`)**:
    - Tables: `products`, `warehouses`, `inventory`, `orders`, `order_items`, `shipments`.
    - Configurable storage path via `DATABASE_PATH` for persistent volume mounts.
 
@@ -91,53 +91,157 @@ agent-wars/
 
 ---
 
-## Local Development Quickstart
+## Local Setup Instructions
 
-### 1. Environment Setup
+Follow these step-by-step instructions to set up and run the project locally on your machine.
 
-Ensure virtual environment `.venv` is activated:
+### 1. Prerequisites
+
+- **Python**: Version `3.13` (or `3.11+`) installed. Verify with:
+  ```bash
+  python --version
+  ```
+- **Git**: Installed on your system.
+- **Gemini API Key**: Obtain a free API key from [Google AI Studio](https://aistudio.google.com/).
+
+---
+
+### 2. Clone the Repository
+
 ```bash
-# On Windows (PowerShell)
+git clone https://github.com/your-username/agent-wars.git
+cd agent-wars
+```
+
+---
+
+### 3. Create & Activate a Virtual Environment
+
+#### Option A: Using standard Python `venv`
+
+- **On Windows (PowerShell)**:
+  ```powershell
+  python -m venv .venv
+  .\.venv\Scripts\Activate.ps1
+  ```
+  *(If PowerShell blocks script execution, run: `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass`)*
+
+- **On Windows (Command Prompt)**:
+  ```cmd
+  python -m venv .venv
+  .\.venv\Scripts\activate.bat
+  ```
+
+- **On macOS / Linux**:
+  ```bash
+  python3 -m venv .venv
+  source .venv/bin/activate
+  ```
+
+#### Option B: Using `uv` (Fastest)
+
+```bash
+uv venv
+# Windows:
 .\.venv\Scripts\Activate.ps1
+# macOS/Linux:
+source .venv/bin/activate
 ```
 
-Set your Gemini API Key in `.env`:
+---
+
+### 4. Install Dependencies
+
+Install the project in editable mode along with its dependencies:
+
+#### Using `pip`:
+```bash
+pip install -e .
+pip install -r requirements.txt
+```
+
+#### Or using `uv`:
+```bash
+uv sync
+```
+
+---
+
+### 5. Configure Environment Variables
+
+Create your local `.env` configuration file from the template:
+
+- **On Windows (PowerShell)**:
+  ```powershell
+  Copy-Item .env.example .env
+  ```
+
+- **On macOS / Linux**:
+  ```bash
+  cp .env.example .env
+  ```
+
+Open `.env` in your editor and set your Gemini API Key:
 ```env
-GEMINI_API_KEY="your-api-key"
+GEMINI_API_KEY="your-actual-gemini-api-key"
+GEMINI_MODEL="gemini-flash-lite-latest"
+PORT=8000
+HOST="0.0.0.0"
 ```
 
-### 2. Initialize Database
+---
+
+### 6. Initialize the SQLite Database
+
+Initialize and seed the database with test products, regional warehouses, and inventory balances:
 
 ```bash
 python main.py db
 ```
-
-### 3. Run Autonomous Agent Test Pipeline
-
-```bash
-python main.py agent
+Output:
+```
+Database initialized successfully at: .../inventory.db
+Database initialized successfully with test inventory.
 ```
 
-Runs all 3 core test cases:
-1. In-stock order (Chicago) &rarr; Dispatched with carrier and tracking number.
-2. Out-of-stock order (Seattle) &rarr; Flagged exception with alternative item recommendation.
-3. Route weather exception (Denver) &rarr; Flagged exception with air reroute recommendation.
+---
 
-### 4. Start the FastAPI Server & Web Dashboard
+### 7. Run the Application
 
+The unified [`main.py`](main.py) CLI supports all modes:
+
+#### A. Start the Web Server & Interactive Dashboard (Default)
 ```bash
 python main.py
 ```
-Open **[http://localhost:8000](http://localhost:8000)** in your browser to view the interactive dashboard, trigger orders, inspect database tables, and view agent trace logs.
+Open **[http://localhost:8000](http://localhost:8000)** in your browser:
+- **Interactive UI Dashboard**: Explore live stats, trigger orders, view agent traces, and inspect database tables.
+- **Swagger API Documentation**: Visit **[http://localhost:8000/docs](http://localhost:8000/docs)** for interactive OpenAPI docs.
+- **FastMCP Endpoint**: Hosted at **`http://localhost:8000/mcp`** for Model Context Protocol clients.
 
-### 5. Run FastMCP Standalone (Stdio mode)
+#### B. Run the Autonomous Multi-Agent Pipeline CLI
+```bash
+python main.py agent
+```
+Executes all 3 core fulfillment scenarios:
+1. **In-Stock Order (Chicago)** &rarr; Dispatched with tracking `TRK-ORD-001` via `STANDARD_EXPRESS`.
+2. **Out-of-Stock Exception (Seattle)** &rarr; Discovers alternative SKU `ITEM-203` and flags exception.
+3. **Route Weather Exception (Denver)** &rarr; Identifies blizzard mountain blockage and recommends air rerouting.
 
+#### C. Run the FastMCP Server in Standalone Stdio Mode
 ```bash
 python main.py mcp
 ```
+Connects external MCP clients.
 
-### 6. Run Test Suite
+---
+
+### 8. Run the Automated Test Suite
+
+Run the full pytest integration test suite:
 
 ```bash
 pytest tests/
 ```
+
+---
