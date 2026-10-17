@@ -8,25 +8,26 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Install curl/build dependencies if needed
+# Install curl for healthcheck
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install python dependencies
-COPY requirements.txt .
+# Install python dependencies and package
+COPY pyproject.toml requirements.txt ./
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
 # Copy application source code
 COPY . /app
+RUN pip install --no-cache-dir -e .
 
 # Ensure database directory is writable
 RUN mkdir -p /app/data
 ENV DATABASE_PATH=/app/data/inventory.db
 
 # Run DB migration / initialization
-RUN python setup_db.py
+RUN python main.py db
 
 EXPOSE 8000
 
@@ -34,6 +35,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:${PORT}/healthz || exit 1
 
-# Start FastAPI application
+# Start application server
 CMD ["python", "main.py"]
-

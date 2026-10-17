@@ -11,7 +11,6 @@ import uuid
 from typing import Any, Dict, List, Optional
 from dotenv import load_dotenv
 
-# Ensure environment variables are loaded
 load_dotenv()
 
 from google.adk.agents import LlmAgent
@@ -20,22 +19,29 @@ from google.adk.sessions import InMemorySessionService
 from google.adk.workflow._retry_config import RetryConfig
 from google.genai import types
 
-from database import (
-    check_inventory_db,
-    dispatch_order_db,
-    find_alternative_products_db,
-    flag_order_exception_db,
-    init_db,
-)
+try:
+    from agent_wars.database import (
+        check_inventory_db,
+        dispatch_order_db,
+        find_alternative_products_db,
+        flag_order_exception_db,
+        init_db,
+    )
+except ImportError:
+    from database import (
+        check_inventory_db,
+        dispatch_order_db,
+        find_alternative_products_db,
+        flag_order_exception_db,
+        init_db,
+    )
 
-# Active Gemini Models with automatic resilient fallback
 PREFERRED_MODEL = os.getenv("GEMINI_MODEL", "gemini-flash-lite-latest")
 FALLBACK_MODELS = [
     PREFERRED_MODEL,
     "gemini-3.1-flash-lite-preview",
     "gemini-3.5-flash"
 ]
-# Remove duplicates while preserving order
 FALLBACK_MODELS = list(dict.fromkeys(FALLBACK_MODELS))
 AGENT_RETRY = RetryConfig(max_attempts=3, initial_delay=2.0, backoff_factor=2.0)
 
@@ -254,7 +260,6 @@ async def process_logistics_request(
                 session_id=session_id,
                 new_message=user_content
             ):
-                # Capture tool calls
                 if hasattr(event, "get_function_calls") and callable(event.get_function_calls):
                     calls = event.get_function_calls()
                     if calls:
@@ -266,7 +271,6 @@ async def process_logistics_request(
                             })
                             print(f"  [Tool Call] {event.author} -> {c.name}({c.args})")
 
-                # Capture tool responses
                 if hasattr(event, "get_function_responses") and callable(event.get_function_responses):
                     resps = event.get_function_responses()
                     if resps:
@@ -278,7 +282,6 @@ async def process_logistics_request(
                             })
                             print(f"  [Tool Response] {r.name}: {r.response}")
 
-                # Capture model text content
                 if event.content and event.content.parts:
                     for part in event.content.parts:
                         if part.text:
@@ -293,7 +296,6 @@ async def process_logistics_request(
                             if is_final or event.author == "LogisticsOrchestrator":
                                 final_output_parts.append(part.text)
 
-            # Assemble final text response
             if final_output_parts:
                 final_text = "\n\n".join(final_output_parts).strip()
             elif messages:
@@ -334,6 +336,13 @@ async def process_logistics_request(
     }
 
 
+# Default module-level agent instances
+orchestrator = build_logistics_agent(PREFERRED_MODEL)
+inventory_agent = orchestrator.sub_agents[0]
+dispatch_agent = orchestrator.sub_agents[1]
+exception_agent = orchestrator.sub_agents[2]
+
+
 # =====================================================================
 # 4. CLI Self-Test Runner
 # =====================================================================
@@ -342,14 +351,15 @@ async def main():
     init_db(reset=True)
 
     print("\n================ TEST CASE 1: In-Stock Order ================")
-    res1 = await process_logistics_request("Process order #ORD-001 for SKU ITEM-101 to Chicago")
+    await process_logistics_request("Process order #ORD-001 for SKU ITEM-101 to Chicago")
 
     print("\n================ TEST CASE 2: Out-of-Stock Order ================")
-    res2 = await process_logistics_request("Process order #ORD-002 for SKU ITEM-202 to Seattle")
+    await process_logistics_request("Process order #ORD-002 for SKU ITEM-202 to Seattle")
 
     print("\n================ TEST CASE 3: Route Weather Exception ================")
-    res3 = await process_logistics_request("Process order #ORD-003 for SKU ITEM-101 to Denver")
+    await process_logistics_request("Process order #ORD-003 for SKU ITEM-101 to Denver")
 
 
 if __name__ == "__main__":
     asyncio.run(main())
+

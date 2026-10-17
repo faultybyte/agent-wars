@@ -4,6 +4,7 @@ Provides REST API endpoints, mounted FastMCP protocol server, and an interactive
 """
 
 import json
+import os
 from contextlib import asynccontextmanager
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
@@ -11,16 +12,28 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 
-from database import (
-    init_db,
-    list_products_db,
-    list_inventory_db,
-    list_orders_db,
-    list_shipments_db,
-    check_inventory_db,
-)
-from mcp_server import mcp
-from agent_handler import process_logistics_request
+try:
+    from agent_wars.database import (
+        init_db,
+        list_products_db,
+        list_inventory_db,
+        list_orders_db,
+        list_shipments_db,
+        check_inventory_db,
+    )
+    from agent_wars.mcp_server import mcp
+    from agent_wars.agent_handler import process_logistics_request
+except ImportError:
+    from database import (
+        init_db,
+        list_products_db,
+        list_inventory_db,
+        list_orders_db,
+        list_shipments_db,
+        check_inventory_db,
+    )
+    from mcp_server import mcp
+    from agent_handler import process_logistics_request
 
 
 @asynccontextmanager
@@ -131,7 +144,6 @@ async def process_order(req: ProcessOrderRequest):
     Process an order through the Google ADK Autonomous Multi-Agent Pipeline.
     Supports either a natural language prompt or structured parameters.
     """
-    # Construct prompt if structured parameters are passed
     if req.prompt:
         user_prompt = req.prompt.strip()
     elif req.order_id and req.sku and req.destination:
@@ -148,7 +160,6 @@ async def process_order(req: ProcessOrderRequest):
         session_id=req.session_id
     )
 
-    # Attach updated database snapshot
     result["updated_orders"] = list_orders_db()
     result["updated_inventory"] = list_inventory_db()
     return result
@@ -161,7 +172,6 @@ async def call_mcp_tool(req: McpCallRequest):
     if callable(tool_fn):
         try:
             res = await mcp.call_tool(req.tool_name, req.arguments)
-            # Serialize FastMCP result cleanly
             if hasattr(res, "content"):
                 text_content = [item.text for item in res.content if hasattr(item, "text")]
                 return {
@@ -440,7 +450,6 @@ async def dashboard():
         document.getElementById('stat-orders').innerText = ordersRes.length || 0;
         document.getElementById('stat-shipments').innerText = shipRes.length || 0;
 
-        // Render Orders
         const ordersBody = document.getElementById('orders-table-body');
         if (ordersRes.length === 0) {
           ordersBody.innerHTML = '<tr><td colspan="4" class="text-center text-secondary">No orders recorded yet.</td></tr>';
@@ -455,7 +464,6 @@ async def dashboard():
           `).join('');
         }
 
-        // Render Inventory
         const invBody = document.getElementById('inventory-table-body');
         invBody.innerHTML = invRes.map(i => `
           <tr>
@@ -466,7 +474,6 @@ async def dashboard():
           </tr>
         `).join('');
 
-        // Render Shipments
         const shipBody = document.getElementById('shipments-table-body');
         if (shipRes.length === 0) {
           shipBody.innerHTML = '<tr><td colspan="5" class="text-center text-secondary">No active shipments.</td></tr>';
@@ -570,7 +577,6 @@ async def dashboard():
       refreshData();
     }
 
-    // Initial load
     setPrompt('Process order #ORD-001 for SKU ITEM-101 to Chicago');
     refreshData();
   </script>
@@ -580,7 +586,15 @@ async def dashboard():
     return HTMLResponse(content=html)
 
 
-if __name__ == "__main__":
+def main() -> None:
+    """Run server from CLI."""
     import uvicorn
-    uvicorn.run("api:app", host="0.0.0.0", port=8000, reload=False)
+    port = int(os.getenv("PORT", "8000"))
+    host = os.getenv("HOST", "0.0.0.0")
+    print(f"Launching Autonomous Logistics Pipeline on http://{host}:{port}")
+    uvicorn.run("agent_wars.api:app", host=host, port=port, reload=False)
+
+
+if __name__ == "__main__":
+    main()
 

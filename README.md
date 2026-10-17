@@ -64,6 +64,33 @@ An end-to-end autonomous logistics orchestration system.
 
 ---
 
+## Project Structure
+
+```
+agent-wars/
+├── src/
+│   └── agent_wars/
+│       ├── __init__.py          # Package exports (app, mcp, orchestrator, main)
+│       ├── agent_handler.py     # Google ADK autonomous multi-agent hierarchy
+│       ├── api.py               # FastAPI backend, FastMCP mount, & web dashboard
+│       ├── database.py          # SQLite relational database operations & schema
+│       ├── mcp_server.py        # FastMCP server exposing logistics tools
+│       └── setup_db.py          # Database initialization & test data seeding
+├── tests/
+│   └── test_pipeline.py         # Pytest automated unit and integration suite
+├── main.py                      # Unified CLI & server entrypoint
+├── render.yaml                  # Render deployment Blueprint specification
+├── Dockerfile                   # Container build for Cloud Run / Docker
+├── docker-compose.yml           # Multi-container orchestration with persistent volume
+├── requirements.txt             # Clean dependencies for cloud builds
+├── pyproject.toml               # Modern Python project configuration
+├── .dockerignore                # Container build exclusions
+├── .env.example                 # Environment variables reference
+└── README.md                    # Project documentation
+```
+
+---
+
 ## Local Development Quickstart
 
 ### 1. Environment Setup
@@ -82,13 +109,13 @@ GEMINI_API_KEY="your-api-key"
 ### 2. Initialize Database
 
 ```bash
-python setup_db.py
+python main.py db
 ```
 
 ### 3. Run Autonomous Agent Test Pipeline
 
 ```bash
-python agent_handler.py
+python main.py agent
 ```
 
 Runs all 3 core test cases:
@@ -106,5 +133,11 @@ Open **[http://localhost:8000](http://localhost:8000)** in your browser to view 
 ### 5. Run FastMCP Standalone (Stdio mode)
 
 ```bash
-python mcp_server.py
+python main.py mcp
+```
+
+### 6. Run Test Suite
+
+```bash
+pytest tests/
 ```

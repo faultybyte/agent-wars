@@ -3,8 +3,8 @@ services:
     name: autonomous-logistics-agent
     runtime: python
     plan: free
-    buildCommand: pip install -r requirements.txt && python setup_db.py
-    startCommand: uvicorn api:app --host 0.0.0.0 --port $PORT
+    buildCommand: pip install -e . && python main.py db
+    startCommand: python main.py
     healthCheckPath: /healthz
     autoDeploy: true
     envVars:
@@ -16,4 +16,3 @@ services:
         value: gemini-flash-lite-latest
       - key: HOST
         value: 0.0.0.0
-

@@ -8,7 +8,8 @@ import sqlite3
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-DB_PATH = Path(os.getenv("DATABASE_PATH", str(Path(__file__).resolve().parent / "inventory.db")))
+# Allow database path to be overridden via environment variable
+DB_PATH = Path(os.getenv("DATABASE_PATH", str(Path(__file__).resolve().parent.parent.parent / "inventory.db")))
 
 
 def get_db_connection() -> sqlite3.Connection:
@@ -242,7 +243,6 @@ def dispatch_order_db(
     cursor = conn.cursor()
 
     try:
-        # Find product
         cursor.execute("SELECT id, name FROM products WHERE sku = ?", (sku,))
         prod = cursor.fetchone()
         if not prod:
@@ -250,7 +250,6 @@ def dispatch_order_db(
 
         product_id = prod["id"]
 
-        # Select warehouse with available stock
         if preferred_warehouse:
             cursor.execute("""
             SELECT i.id, i.warehouse_id, i.quantity, w.code, w.name
@@ -269,7 +268,6 @@ def dispatch_order_db(
 
         inv = cursor.fetchone()
         if not inv:
-            # Mark order as FAILED / OUT_OF_STOCK
             cursor.execute("""
             INSERT INTO orders (order_number, destination, status)
             VALUES (?, ?, 'OUT_OF_STOCK')
@@ -287,11 +285,9 @@ def dispatch_order_db(
         warehouse_code = inv["code"]
         current_qty = inv["quantity"]
 
-        # Deduct stock
         new_qty = current_qty - quantity
         cursor.execute("UPDATE inventory SET quantity = ? WHERE id = ?", (new_qty, inv_id))
 
-        # Record or update order
         cursor.execute("""
         INSERT INTO orders (order_number, destination, status)
         VALUES (?, ?, 'DISPATCHED')
@@ -301,13 +297,11 @@ def dispatch_order_db(
         cursor.execute("SELECT id FROM orders WHERE order_number = ?", (order_id,))
         order_db_id = cursor.fetchone()["id"]
 
-        # Record line item
         cursor.execute("""
         INSERT INTO order_items (order_id, product_id, quantity)
         VALUES (?, ?, ?)
         """, (order_db_id, product_id, quantity))
 
-        # Record shipment
         tracking_number = f"TRK-{order_id}"
         cursor.execute("""
         INSERT INTO shipments (order_id, warehouse_id, tracking_number, carrier, status)

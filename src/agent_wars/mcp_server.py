@@ -1,7 +1,6 @@
 """
 FastMCP Server for Logistics Operations.
 Exposes logistics tools over the Model Context Protocol (MCP) as specified in context.txt.
-Can be executed standalone (stdio/SSE) or mounted in the FastAPI application.
 """
 
 import json
@@ -12,16 +11,28 @@ try:
 except ImportError:
     from mcp.server.fastmcp import FastMCP
 
-from database import (
-    check_inventory_db,
-    dispatch_order_db,
-    find_alternative_products_db,
-    flag_order_exception_db,
-    list_inventory_db,
-    list_orders_db,
-    list_products_db,
-    list_shipments_db,
-)
+try:
+    from agent_wars.database import (
+        check_inventory_db,
+        dispatch_order_db,
+        find_alternative_products_db,
+        flag_order_exception_db,
+        list_inventory_db,
+        list_orders_db,
+        list_products_db,
+        list_shipments_db,
+    )
+except ImportError:
+    from database import (
+        check_inventory_db,
+        dispatch_order_db,
+        find_alternative_products_db,
+        flag_order_exception_db,
+        list_inventory_db,
+        list_orders_db,
+        list_products_db,
+        list_shipments_db,
+    )
 
 # Initialize FastMCP server instance
 mcp = FastMCP("Logistics-MCP-Server")
