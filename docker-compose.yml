@@ -1,0 +1,19 @@
+services:
+  logistics-agent:
+    build: .
+    container_name: logistics-agent
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-flash-lite-latest}
+      - PORT=8000
+      - HOST=0.0.0.0
+      - DATABASE_PATH=/app/data/inventory.db
+    volumes:
+      - logistics-data:/app/data
+
+volumes:
+  logistics-data:
+

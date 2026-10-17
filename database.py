@@ -8,11 +8,12 @@ import sqlite3
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-DB_PATH = Path(__file__).resolve().parent / "inventory.db"
+DB_PATH = Path(os.getenv("DATABASE_PATH", str(Path(__file__).resolve().parent / "inventory.db")))
 
 
 def get_db_connection() -> sqlite3.Connection:
     """Return a database connection with Row factory enabled."""
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON;")

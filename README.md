@@ -54,15 +54,17 @@ An end-to-end autonomous logistics orchestration system built with the **Google 
 3. **FastAPI Web Backend & Dashboard (`api.py`)**:
    - REST API endpoints (`/api/orders/process`, `/api/orders`, `/api/inventory`, `/api/products`, `/api/shipments`, `/api/health`).
    - FastMCP server mounted at `/mcp`.
+   - Healthcheck & probe endpoints: `/api/health`, `/healthz`, `/livez`.
    - Swagger OpenAPI interactive documentation at `/docs`.
    - Rich real-time Single Page Application dashboard served at `/`.
 
 4. **Relational Database (`database.py` / `inventory.db`)**:
    - Tables: `products`, `warehouses`, `inventory`, `orders`, `order_items`, `shipments`.
+   - Configurable storage path via `DATABASE_PATH` for persistent volume mounts.
 
 ---
 
-## Quickstart
+## Local Development Quickstart
 
 ### 1. Environment Setup
 
@@ -106,4 +108,3 @@ Open **[http://localhost:8000](http://localhost:8000)** in your browser to view 
 ```bash
 python mcp_server.py
 ```
-

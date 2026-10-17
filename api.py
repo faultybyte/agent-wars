@@ -77,6 +77,8 @@ class McpCallRequest(BaseModel):
 # =====================================================================
 
 @app.get("/api/health")
+@app.get("/healthz")
+@app.get("/livez")
 async def health_check():
     """Health check endpoint reporting API, database, and MCP readiness."""
     try:
